@@ -34,8 +34,9 @@ export default function PlanGeneratePage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Number of weeks</label>
+          <label htmlFor="plan-weeks" className="block text-sm font-medium text-gray-700 mb-1">Number of weeks</label>
           <input
+            id="plan-weeks"
             type="number"
             min={1}
             max={52}

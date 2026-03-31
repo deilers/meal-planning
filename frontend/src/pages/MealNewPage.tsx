@@ -44,8 +44,9 @@ export function MealForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <Field label="Name">
+      <Field label="Name" htmlFor="meal-name">
         <input
+          id="meal-name"
           type="text"
           required
           value={form.name}
@@ -53,8 +54,9 @@ export function MealForm({
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
         />
       </Field>
-      <Field label="Ingredients">
+      <Field label="Ingredients" htmlFor="meal-ingredients">
         <textarea
+          id="meal-ingredients"
           rows={4}
           value={form.ingredients}
           onChange={(e) => onChange({ ...form, ingredients: e.target.value })}
@@ -62,16 +64,18 @@ export function MealForm({
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
         />
       </Field>
-      <Field label="Recipe">
+      <Field label="Recipe" htmlFor="meal-recipe">
         <textarea
+          id="meal-recipe"
           rows={6}
           value={form.recipe}
           onChange={(e) => onChange({ ...form, recipe: e.target.value })}
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
         />
       </Field>
-      <Field label="Tags">
+      <Field label="Tags" htmlFor="meal-tags">
         <input
+          id="meal-tags"
           type="text"
           value={form.tags}
           onChange={(e) => onChange({ ...form, tags: e.target.value })}
@@ -79,8 +83,9 @@ export function MealForm({
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
         />
       </Field>
-      <Field label="Weight (1–5)">
+      <Field label="Weight (1–5)" htmlFor="meal-weight">
         <input
+          id="meal-weight"
           type="number"
           min={1}
           max={5}
@@ -109,10 +114,10 @@ export function MealForm({
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       {children}
     </div>
   )

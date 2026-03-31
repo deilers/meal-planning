@@ -61,6 +61,25 @@ npm run dev
 
 App will be available at `http://localhost:5173`.
 
+## Testing
+
+### Backend
+
+```bash
+cd backend
+source .venv/bin/activate
+pip install -r requirements-dev.txt  # first time only
+pytest tests/ -v
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run test:run   # single run
+npm test           # watch mode
+```
+
 ## Reference Script
 
 The original `reference-script/meal_picker.py` is preserved for reference. It picks 2 meals/week for a configurable number of weeks from a flat `meals.txt` list, avoiding back-to-back repeats. The web app ports and extends this logic with weighted selection, a full meal library, and saved plan history.
