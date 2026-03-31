@@ -68,15 +68,17 @@ erDiagram
     }
 
     MEALS_INDEX {
-        set meals_all "Set of meal UUIDs"
+        string type "Redis Set"
+        string description "Index of all meal UUIDs"
     }
 
     PLANS_INDEX {
-        zset plans_all "Sorted set — score = Unix timestamp"
+        string type "Redis Sorted Set"
+        string description "Scored by creation timestamp"
     }
 
-    MEALS_INDEX ||--o{ MEAL_HASH : "member → key meal:{uuid}"
-    PLANS_INDEX ||--o{ PLAN_HASH : "member → key plan:{uuid}"
+    MEALS_INDEX ||--o{ MEAL_HASH : "member to key meal:{uuid}"
+    PLANS_INDEX ||--o{ PLAN_HASH : "member to key plan:{uuid}"
     PLAN_HASH }o--o{ MEAL_HASH : "weeks JSON references meal IDs"
 ```
 
