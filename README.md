@@ -2,6 +2,11 @@
 
 A web application for managing a meal library and generating weekly meal plans.
 
+## Docs
+
+- [docs/architecture.md](docs/architecture.md) — system diagrams, data model, request flow, generation algorithm
+- [docs/implementation-plan.md](docs/implementation-plan.md) — phased build plan and progress tracking
+
 ## Stack
 
 - **Frontend**: React + Vite + TypeScript, Tailwind CSS + shadcn/ui, TanStack Query
