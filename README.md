@@ -13,7 +13,7 @@ A web application for managing a meal library and generating weekly meal plans.
 
 - **Frontend**: React + Vite + TypeScript, Tailwind CSS + shadcn/ui, TanStack Query
 - **Backend**: FastAPI (Python)
-- **Database**: Redis (local)
+- **Database**: PostgreSQL
 
 ## Project Structure
 
@@ -39,11 +39,14 @@ meal-planning/
 
 ## Getting Started
 
-> Prerequisites: Python 3.11+, Node.js 20+, Redis running locally on default port 6379.
+> Prerequisites: Python 3.11+, Node.js 20+, PostgreSQL running locally.
 
 ### Backend
 
 ```bash
+# Create the database (one time)
+createdb meal_planning
+
 cd backend
 python -m venv .venv
 source .venv/bin/activate
@@ -55,6 +58,8 @@ python seed.py
 # Start the API server
 uvicorn main:app --reload
 ```
+
+The `DATABASE_URL` environment variable defaults to `postgresql://localhost/meal_planning`. Override it to point at a different host or credentials.
 
 API will be available at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
 
@@ -78,6 +83,8 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt  # first time only
 pytest tests/ -v
 ```
+
+Tests use an in-memory SQLite database — no PostgreSQL instance required.
 
 ### Frontend
 

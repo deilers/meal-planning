@@ -1,11 +1,13 @@
 import json
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
-from db import get_client
+from db import MealRow, PlanRow, get_session, init_db
 from generator import generate_plan
 from models import (
     Meal,
@@ -17,7 +19,14 @@ from models import (
     WeekEntry,
 )
 
-app = FastAPI(title="Meal Planning API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Meal Planning API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,106 +40,103 @@ app.add_middleware(
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-def _get_meal(r, meal_id: str) -> dict | None:
-    meal = r.hgetall(f"meal:{meal_id}")
-    if meal:
-        meal["weight"] = int(meal.get("weight", 1))
-    return meal or None
+def _row_to_meal(row: MealRow) -> dict:
+    return {
+        "id": row.id,
+        "name": row.name,
+        "recipe": row.recipe or "",
+        "ingredients": row.ingredients or "",
+        "tags": row.tags or "",
+        "weight": row.weight,
+        "created_at": row.created_at,
+    }
 
 
-def _enrich_plan(r, plan_data: dict) -> dict:
-    weeks = json.loads(plan_data.get("weeks", "[]"))
+def _enrich_plan(db: Session, row: PlanRow) -> dict:
+    weeks = json.loads(row.weeks)
     enriched = []
     for entry in weeks:
-        m1 = _get_meal(r, entry["meal_1_id"]) or {}
-        m2 = _get_meal(r, entry["meal_2_id"]) or {}
+        m1 = db.get(MealRow, entry["meal_1_id"])
+        m2 = db.get(MealRow, entry["meal_2_id"])
         enriched.append(
             {
                 **entry,
-                "meal_1_name": m1.get("name", "Unknown"),
-                "meal_2_name": m2.get("name", "Unknown"),
+                "meal_1_name": m1.name if m1 else "Unknown",
+                "meal_2_name": m2.name if m2 else "Unknown",
             }
         )
-    return {**plan_data, "weeks": enriched}
+    return {
+        "id": row.id,
+        "name": row.name,
+        "created_at": row.created_at,
+        "weeks": enriched,
+    }
 
 
 # ── Meals ─────────────────────────────────────────────────────────────────────
 
 
 @app.get("/api/meals", response_model=list[Meal])
-def list_meals(tag: str | None = None):
-    r = get_client()
-    meals = []
-    for mid in r.smembers("meals:all"):
-        meal = _get_meal(r, mid)
-        if not meal:
-            continue
-        if tag and tag not in [t.strip() for t in meal.get("tags", "").split(",")]:
-            continue
-        meals.append(meal)
-    return sorted(meals, key=lambda m: m["name"].lower())
+def list_meals(tag: str | None = None, db: Session = Depends(get_session)):
+    rows = db.query(MealRow).order_by(MealRow.name).all()
+    meals = [_row_to_meal(r) for r in rows]
+    if tag:
+        meals = [m for m in meals if tag in [t.strip() for t in m["tags"].split(",")]]
+    return meals
 
 
 @app.post("/api/meals", response_model=Meal, status_code=201)
-def create_meal(body: MealCreate):
-    r = get_client()
-    meal_id = str(uuid.uuid4())
-    data = {
-        "id": meal_id,
-        "name": body.name,
-        "recipe": body.recipe,
-        "ingredients": body.ingredients,
-        "tags": body.tags,
-        "weight": str(body.weight),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    r.hset(f"meal:{meal_id}", mapping=data)
-    r.sadd("meals:all", meal_id)
-    return {**data, "weight": body.weight}
+def create_meal(body: MealCreate, db: Session = Depends(get_session)):
+    meal = MealRow(
+        id=str(uuid.uuid4()),
+        name=body.name,
+        recipe=body.recipe,
+        ingredients=body.ingredients,
+        tags=body.tags,
+        weight=body.weight,
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+    db.add(meal)
+    db.commit()
+    db.refresh(meal)
+    return _row_to_meal(meal)
 
 
 @app.get("/api/meals/{meal_id}", response_model=Meal)
-def get_meal(meal_id: str):
-    meal = _get_meal(get_client(), meal_id)
+def get_meal(meal_id: str, db: Session = Depends(get_session)):
+    meal = db.get(MealRow, meal_id)
     if not meal:
         raise HTTPException(status_code=404, detail="Meal not found")
-    return meal
+    return _row_to_meal(meal)
 
 
 @app.put("/api/meals/{meal_id}", response_model=Meal)
-def update_meal(meal_id: str, body: MealUpdate):
-    r = get_client()
-    meal = _get_meal(r, meal_id)
+def update_meal(meal_id: str, body: MealUpdate, db: Session = Depends(get_session)):
+    meal = db.get(MealRow, meal_id)
     if not meal:
         raise HTTPException(status_code=404, detail="Meal not found")
-    updates = body.model_dump(exclude_none=True)
-    if updates:
-        if "weight" in updates:
-            updates["weight"] = str(updates["weight"])
-        r.hset(f"meal:{meal_id}", mapping=updates)
-    return _get_meal(r, meal_id)
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(meal, field, value)
+    db.commit()
+    db.refresh(meal)
+    return _row_to_meal(meal)
 
 
 @app.delete("/api/meals/{meal_id}", status_code=204)
-def delete_meal(meal_id: str):
-    r = get_client()
-    if not r.exists(f"meal:{meal_id}"):
+def delete_meal(meal_id: str, db: Session = Depends(get_session)):
+    meal = db.get(MealRow, meal_id)
+    if not meal:
         raise HTTPException(status_code=404, detail="Meal not found")
-    r.delete(f"meal:{meal_id}")
-    r.srem("meals:all", meal_id)
+    db.delete(meal)
+    db.commit()
 
 
 # ── Plans ─────────────────────────────────────────────────────────────────────
 
 
 @app.post("/api/plans/generate", response_model=Plan, status_code=201)
-def generate(body: PlanGenerateRequest):
-    r = get_client()
-    meals = [
-        {"id": mid, "weight": int((_get_meal(r, mid) or {}).get("weight", 1))}
-        for mid in r.smembers("meals:all")
-        if r.exists(f"meal:{mid}")
-    ]
+def generate(body: PlanGenerateRequest, db: Session = Depends(get_session)):
+    meals = [{"id": r.id, "weight": r.weight} for r in db.query(MealRow).all()]
     if len(meals) < 2:
         raise HTTPException(status_code=400, detail="Need at least 2 meals to generate a plan")
 
@@ -139,62 +145,52 @@ def generate(body: PlanGenerateRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    plan_id = str(uuid.uuid4())
-    name = body.name or f"Plan {datetime.now(timezone.utc).strftime('%B %d, %Y')}"
-    created_at = datetime.now(timezone.utc).isoformat()
-    plan_data = {
-        "id": plan_id,
-        "name": name,
-        "created_at": created_at,
-        "weeks": json.dumps(weeks),
-    }
-    r.hset(f"plan:{plan_id}", mapping=plan_data)
-    r.zadd("plans:all", {plan_id: datetime.now(timezone.utc).timestamp()})
-    return _enrich_plan(r, plan_data)
+    plan = PlanRow(
+        id=str(uuid.uuid4()),
+        name=body.name or f"Plan {datetime.now(timezone.utc).strftime('%B %d, %Y')}",
+        created_at=datetime.now(timezone.utc).isoformat(),
+        weeks=json.dumps(weeks),
+    )
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    return _enrich_plan(db, plan)
 
 
 @app.get("/api/plans", response_model=list[Plan])
-def list_plans():
-    r = get_client()
-    plans = []
-    for pid in r.zrevrange("plans:all", 0, -1):
-        plan = r.hgetall(f"plan:{pid}")
-        if plan:
-            plans.append(_enrich_plan(r, plan))
-    return plans
+def list_plans(db: Session = Depends(get_session)):
+    rows = db.query(PlanRow).order_by(PlanRow.created_at.desc()).all()
+    return [_enrich_plan(db, r) for r in rows]
 
 
 @app.get("/api/plans/{plan_id}", response_model=Plan)
-def get_plan(plan_id: str):
-    r = get_client()
-    plan = r.hgetall(f"plan:{plan_id}")
+def get_plan(plan_id: str, db: Session = Depends(get_session)):
+    plan = db.get(PlanRow, plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
-    return _enrich_plan(r, plan)
+    return _enrich_plan(db, plan)
 
 
 @app.put("/api/plans/{plan_id}", response_model=Plan)
-def update_plan(plan_id: str, body: PlanUpdate):
-    r = get_client()
-    plan = r.hgetall(f"plan:{plan_id}")
+def update_plan(plan_id: str, body: PlanUpdate, db: Session = Depends(get_session)):
+    plan = db.get(PlanRow, plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
-    updates: dict = {}
     if body.name is not None:
-        updates["name"] = body.name
+        plan.name = body.name
     if body.weeks is not None:
-        updates["weeks"] = json.dumps(
+        plan.weeks = json.dumps(
             [w.model_dump(exclude={"meal_1_name", "meal_2_name"}) for w in body.weeks]
         )
-    if updates:
-        r.hset(f"plan:{plan_id}", mapping=updates)
-    return _enrich_plan(r, r.hgetall(f"plan:{plan_id}"))
+    db.commit()
+    db.refresh(plan)
+    return _enrich_plan(db, plan)
 
 
 @app.delete("/api/plans/{plan_id}", status_code=204)
-def delete_plan(plan_id: str):
-    r = get_client()
-    if not r.exists(f"plan:{plan_id}"):
+def delete_plan(plan_id: str, db: Session = Depends(get_session)):
+    plan = db.get(PlanRow, plan_id)
+    if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
-    r.delete(f"plan:{plan_id}")
-    r.zrem("plans:all", plan_id)
+    db.delete(plan)
+    db.commit()

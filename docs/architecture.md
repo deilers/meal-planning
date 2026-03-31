@@ -2,18 +2,18 @@
 
 ## System Overview
 
-The app is a standard three-tier web application: a React SPA, a Python REST API, and Redis as the data store. In local development the Vite dev server proxies all `/api` requests to FastAPI, so the browser only ever talks to one origin.
+The app is a standard three-tier web application: a React SPA, a Python REST API, and PostgreSQL as the data store. In local development the Vite dev server proxies all `/api` requests to FastAPI, so the browser only ever talks to one origin.
 
 ```mermaid
 graph LR
     Browser["Browser<br/>React SPA"]
     Vite["Vite Dev Server<br/>localhost:5173"]
     FastAPI["FastAPI<br/>localhost:8000"]
-    Redis["Redis<br/>localhost:6379"]
+    PG["PostgreSQL<br/>localhost:5432"]
 
     Browser -- "HTTP" --> Vite
     Vite -- "/api/* proxy" --> FastAPI
-    FastAPI -- "redis-py" --> Redis
+    FastAPI -- "SQLAlchemy" --> PG
 ```
 
 ---
@@ -27,16 +27,12 @@ sequenceDiagram
     participant Browser
     participant Vite
     participant FastAPI
-    participant Redis
+    participant PG
 
     Browser->>Vite: GET /api/meals
     Vite->>FastAPI: GET /api/meals (proxied)
-    FastAPI->>Redis: SMEMBERS meals:all
-    Redis-->>FastAPI: [uuid-1, uuid-2, ...]
-    loop for each UUID
-        FastAPI->>Redis: HGETALL meal:{uuid}
-        Redis-->>FastAPI: {id, name, weight, ...}
-    end
+    FastAPI->>PG: SELECT * FROM meals ORDER BY name
+    PG-->>FastAPI: rows
     FastAPI-->>Vite: JSON array (sorted by name)
     Vite-->>Browser: JSON array
     Note over Browser: TanStack Query caches result
@@ -44,52 +40,38 @@ sequenceDiagram
 
 ---
 
-## Data Model (Redis)
+## Data Model (PostgreSQL)
 
-Redis key layout. There are no joins — plan weeks store meal IDs, and meal names are resolved by the API at read time.
+Two tables. Plan weeks are stored as a JSON column — no join table needed at this scale.
 
 ```mermaid
 erDiagram
-    MEAL_HASH {
-        string id
+    meals {
+        string id PK
         string name
-        string recipe
-        string ingredients
+        text   recipe
+        text   ingredients
         string tags
         int    weight
         string created_at
     }
 
-    PLAN_HASH {
-        string id
+    plans {
+        string id PK
         string name
         string created_at
-        json   weeks
+        text   weeks
     }
 
-    MEALS_INDEX {
-        string type "Redis Set"
-        string description "Index of all meal UUIDs"
-    }
-
-    PLANS_INDEX {
-        string type "Redis Sorted Set"
-        string description "Scored by creation timestamp"
-    }
-
-    MEALS_INDEX ||--o{ MEAL_HASH : "member to key meal:{uuid}"
-    PLANS_INDEX ||--o{ PLAN_HASH : "member to key plan:{uuid}"
-    PLAN_HASH }o--o{ MEAL_HASH : "weeks JSON references meal IDs"
+    plans }o--o{ meals : "weeks JSON references meal IDs"
 ```
 
-**Key naming:**
+**Table notes:**
 
-| Key | Type | Purpose |
-|---|---|---|
-| `meal:{uuid}` | Hash | All fields for one meal |
-| `meals:all` | Set | Index of all meal UUIDs |
-| `plan:{uuid}` | Hash | All fields for one plan (weeks stored as JSON) |
-| `plans:all` | Sorted Set | Index of all plan UUIDs, scored by creation time |
+| Table | Notable columns |
+|---|---|
+| `meals` | `weight` 1–5 controls selection frequency; `tags` is a comma-separated string |
+| `plans` | `weeks` stores a JSON array of `{week, meal_1_id, meal_2_id}`; meal names are resolved at read time |
 
 ---
 
@@ -99,7 +81,7 @@ erDiagram
 graph TD
     main["main.py<br/>FastAPI routes"]
     models["models.py<br/>Pydantic schemas"]
-    db["db.py<br/>Redis client"]
+    db["db.py<br/>SQLAlchemy models + session"]
     generator["generator.py<br/>Plan generation logic"]
     seed["seed.py<br/>One-time data import"]
 
