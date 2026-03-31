@@ -6,10 +6,10 @@ The app is a standard three-tier web application: a React SPA, a Python REST API
 
 ```mermaid
 graph LR
-    Browser["Browser\nReact SPA"]
-    Vite["Vite Dev Server\nlocalhost:5173"]
-    FastAPI["FastAPI\nlocalhost:8000"]
-    Redis["Redis\nlocalhost:6379"]
+    Browser["Browser<br/>React SPA"]
+    Vite["Vite Dev Server<br/>localhost:5173"]
+    FastAPI["FastAPI<br/>localhost:8000"]
+    Redis["Redis<br/>localhost:6379"]
 
     Browser -- "HTTP" --> Vite
     Vite -- "/api/* proxy" --> FastAPI
@@ -97,11 +97,11 @@ erDiagram
 
 ```mermaid
 graph TD
-    main["main.py\nFastAPI routes"]
-    models["models.py\nPydantic schemas"]
-    db["db.py\nRedis client"]
-    generator["generator.py\nPlan generation logic"]
-    seed["seed.py\nOne-time data import"]
+    main["main.py<br/>FastAPI routes"]
+    models["models.py<br/>Pydantic schemas"]
+    db["db.py<br/>Redis client"]
+    generator["generator.py<br/>Plan generation logic"]
+    seed["seed.py<br/>One-time data import"]
 
     main --> models
     main --> db
@@ -117,8 +117,8 @@ All modules are flat in `backend/`. No package structure — imports are direct.
 
 ```mermaid
 graph TD
-    main["main.tsx\nApp entry point"]
-    App["App.tsx\nRouter + nav"]
+    main["main.tsx<br/>App entry point"]
+    App["App.tsx<br/>Router + nav"]
 
     main --> App
 
@@ -162,20 +162,20 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B["Build weighted pool\nEach meal ID repeated weight times"]
+    A([Start]) --> B["Build weighted pool<br/>Each meal ID repeated weight times"]
     B --> C["week = 1"]
-    C --> D["available = pool items\nnot in previous week"]
-    D --> E{≥ 2 unique\navailable?}
-    E -- No --> F["Relax: use full\nremaining pool"]
-    F --> G{≥ 2 unique\nremaining?}
+    C --> D["available = pool items<br/>not in previous week"]
+    D --> E{≥ 2 unique<br/>available?}
+    E -- No --> F["Relax: use full<br/>remaining pool"]
+    F --> G{≥ 2 unique<br/>remaining?}
     G -- No --> H([Raise ValueError])
     G -- Yes --> I
-    E -- Yes --> I["Pick meal_1 at random\nfrom available"]
-    I --> J["Pick meal_2 at random\n(must differ from meal_1)"]
-    J --> K["Remove one occurrence of\neach from pool"]
-    K --> L["Append week entry\n{week, meal_1_id, meal_2_id}"]
-    L --> M{week ==\nnum_weeks?}
-    M -- No --> N["week += 1\nprevious = {meal_1, meal_2}"]
+    E -- Yes --> I["Pick meal_1 at random<br/>from available"]
+    I --> J["Pick meal_2 at random<br/>(must differ from meal_1)"]
+    J --> K["Remove one occurrence of<br/>each from pool"]
+    K --> L["Append week entry<br/>{week, meal_1_id, meal_2_id}"]
+    L --> M{week ==<br/>num_weeks?}
+    M -- No --> N["week += 1<br/>previous = {meal_1, meal_2}"]
     N --> D
     M -- Yes --> O([Return plan])
 ```
