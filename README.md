@@ -2,6 +2,8 @@
 
 A web application for managing a meal library and generating weekly meal plans.
 
+> This project is being built with [Claude Code](https://claude.ai/code).
+
 ## Docs
 
 - [docs/architecture.md](docs/architecture.md) — system diagrams, data model, request flow, generation algorithm
