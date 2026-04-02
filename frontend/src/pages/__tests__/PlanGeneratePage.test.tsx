@@ -12,6 +12,11 @@ describe('PlanGeneratePage', () => {
     expect(screen.getByText('Generate')).toBeInTheDocument()
   })
 
+  it('renders the tag filter input', () => {
+    renderWithProviders(<PlanGeneratePage />)
+    expect(screen.getByLabelText(/Filter by tag/)).toBeInTheDocument()
+  })
+
   it('defaults to 4 weeks', () => {
     renderWithProviders(<PlanGeneratePage />)
     expect(screen.getByLabelText(/Number of weeks/)).toHaveValue(4)

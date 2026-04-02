@@ -56,6 +56,13 @@ describe('MealDetailPage', () => {
     })
   })
 
+  it('shows excluded badge when meal is disabled', async () => {
+    renderMealDetail('2')
+    await waitFor(() => {
+      expect(screen.getByText('Excluded from plans')).toBeInTheDocument()
+    })
+  })
+
   it('renders recipe via markdown component', async () => {
     renderMealDetail('1')
     await waitFor(() => {

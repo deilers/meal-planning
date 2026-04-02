@@ -19,6 +19,7 @@ MEALS_FILE = os.path.join(
 
 
 def seed():
+    """Import meals.txt into the database, skipping if data already exists."""
     init_db()
     db = SessionLocal()
     try:

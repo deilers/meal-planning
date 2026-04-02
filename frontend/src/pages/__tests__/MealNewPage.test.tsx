@@ -25,6 +25,17 @@ describe('MealNewPage', () => {
     expect(screen.getByText('Save meal')).toBeInTheDocument()
   })
 
+  it('renders weight as a range slider', () => {
+    renderWithProviders(<MealNewPage />)
+    const slider = screen.getByLabelText(/Weight/)
+    expect(slider).toHaveAttribute('type', 'range')
+  })
+
+  it('renders the enabled checkbox', () => {
+    renderWithProviders(<MealNewPage />)
+    expect(screen.getByLabelText('Include in plan generation')).toBeInTheDocument()
+  })
+
   it('submits the form with entered values', async () => {
     const user = userEvent.setup()
     renderWithProviders(

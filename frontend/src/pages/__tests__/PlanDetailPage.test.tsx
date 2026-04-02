@@ -44,6 +44,23 @@ describe('PlanDetailPage', () => {
     confirmSpy.mockRestore()
   })
 
+  it('renders swap buttons for each meal slot', async () => {
+    renderPlanDetail()
+    await waitFor(() => {
+      const swapButtons = screen.getAllByText('swap')
+      expect(swapButtons.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('shows a meal select when swap is clicked', async () => {
+    const user = userEvent.setup()
+    renderPlanDetail()
+    await waitFor(() => screen.getAllByText('swap'))
+
+    await user.click(screen.getAllByText('swap')[0])
+    expect(screen.getByRole('combobox')).toBeInTheDocument()
+  })
+
   it('navigates to meals list after confirmed delete', async () => {
     const user = userEvent.setup()
     vi.spyOn(window, 'confirm').mockReturnValue(true)

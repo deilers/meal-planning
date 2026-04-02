@@ -3,13 +3,27 @@ import random
 
 def generate_plan(meals: list[dict], num_weeks: int) -> list[dict]:
     """
-    Generate a meal plan for num_weeks weeks.
-    Each week gets 2 meals. Constraints:
-    - No same meal twice in a week
-    - No meal repeated from the previous week
-    - Each meal is removed from the pool after selection (weight controls how
-      many times a meal can appear across the full plan)
-    Falls back gracefully if the pool is exhausted.
+    Generate a meal plan for the given number of weeks.
+
+    Each week is assigned 2 distinct meals drawn from a weighted pool. Constraints:
+    - The two meals in a week must differ.
+    - Neither meal may repeat from the previous week (back-to-back constraint).
+    - Each selection removes one occurrence from the pool, so a meal with weight N
+      can appear at most N times across the full plan.
+
+    If the pool runs too low to satisfy the back-to-back constraint, it is relaxed
+    and the full remaining pool is used. If even that has fewer than 2 unique meals,
+    a ValueError is raised.
+
+    Args:
+        meals: List of dicts with 'id' and 'weight' keys.
+        num_weeks: Number of weeks to generate.
+
+    Returns:
+        List of dicts with keys 'week', 'meal_1_id', 'meal_2_id'.
+
+    Raises:
+        ValueError: If there are not enough meals to fill the requested weeks.
     """
     # Build weighted pool: each meal id repeated `weight` times
     pool: list[str] = []

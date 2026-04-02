@@ -41,6 +41,7 @@ app.add_middleware(
 
 
 def _row_to_meal(row: MealRow) -> dict:
+    """Serialize a MealRow ORM object to a plain dict for API responses."""
     return {
         "id": row.id,
         "name": row.name,
@@ -48,11 +49,13 @@ def _row_to_meal(row: MealRow) -> dict:
         "ingredients": row.ingredients or "",
         "tags": row.tags or "",
         "weight": row.weight,
+        "enabled": row.enabled if row.enabled is not None else True,
         "created_at": row.created_at,
     }
 
 
 def _enrich_plan(db: Session, row: PlanRow) -> dict:
+    """Serialize a PlanRow, resolving meal IDs to names for each week entry."""
     weeks = json.loads(row.weeks)
     enriched = []
     for entry in weeks:
@@ -78,6 +81,7 @@ def _enrich_plan(db: Session, row: PlanRow) -> dict:
 
 @app.get("/api/meals", response_model=list[Meal])
 def list_meals(tag: str | None = None, db: Session = Depends(get_session)):
+    """Return all meals sorted by name, optionally filtered to a single tag."""
     rows = db.query(MealRow).order_by(MealRow.name).all()
     meals = [_row_to_meal(r) for r in rows]
     if tag:
@@ -87,6 +91,7 @@ def list_meals(tag: str | None = None, db: Session = Depends(get_session)):
 
 @app.post("/api/meals", response_model=Meal, status_code=201)
 def create_meal(body: MealCreate, db: Session = Depends(get_session)):
+    """Create a new meal and return it."""
     meal = MealRow(
         id=str(uuid.uuid4()),
         name=body.name,
@@ -94,6 +99,7 @@ def create_meal(body: MealCreate, db: Session = Depends(get_session)):
         ingredients=body.ingredients,
         tags=body.tags,
         weight=body.weight,
+        enabled=body.enabled,
         created_at=datetime.now(timezone.utc).isoformat(),
     )
     db.add(meal)
@@ -104,6 +110,7 @@ def create_meal(body: MealCreate, db: Session = Depends(get_session)):
 
 @app.get("/api/meals/{meal_id}", response_model=Meal)
 def get_meal(meal_id: str, db: Session = Depends(get_session)):
+    """Return a single meal by ID, or 404 if not found."""
     meal = db.get(MealRow, meal_id)
     if not meal:
         raise HTTPException(status_code=404, detail="Meal not found")
@@ -112,6 +119,7 @@ def get_meal(meal_id: str, db: Session = Depends(get_session)):
 
 @app.put("/api/meals/{meal_id}", response_model=Meal)
 def update_meal(meal_id: str, body: MealUpdate, db: Session = Depends(get_session)):
+    """Update any provided fields on a meal and return the updated record."""
     meal = db.get(MealRow, meal_id)
     if not meal:
         raise HTTPException(status_code=404, detail="Meal not found")
@@ -124,6 +132,7 @@ def update_meal(meal_id: str, body: MealUpdate, db: Session = Depends(get_sessio
 
 @app.delete("/api/meals/{meal_id}", status_code=204)
 def delete_meal(meal_id: str, db: Session = Depends(get_session)):
+    """Delete a meal by ID. Returns 204 on success, 404 if not found."""
     meal = db.get(MealRow, meal_id)
     if not meal:
         raise HTTPException(status_code=404, detail="Meal not found")
@@ -136,7 +145,11 @@ def delete_meal(meal_id: str, db: Session = Depends(get_session)):
 
 @app.post("/api/plans/generate", response_model=Plan, status_code=201)
 def generate(body: PlanGenerateRequest, db: Session = Depends(get_session)):
-    meals = [{"id": r.id, "weight": r.weight} for r in db.query(MealRow).all()]
+    """Generate and persist a new meal plan from enabled meals, with optional tag filter."""
+    rows = db.query(MealRow).filter(MealRow.enabled.is_(True)).all()
+    if body.tag:
+        rows = [r for r in rows if body.tag in [t.strip() for t in (r.tags or "").split(",")]]
+    meals = [{"id": r.id, "weight": r.weight} for r in rows]
     if len(meals) < 2:
         raise HTTPException(status_code=400, detail="Need at least 2 meals to generate a plan")
 
@@ -159,12 +172,14 @@ def generate(body: PlanGenerateRequest, db: Session = Depends(get_session)):
 
 @app.get("/api/plans", response_model=list[Plan])
 def list_plans(db: Session = Depends(get_session)):
+    """Return all plans sorted by creation date descending."""
     rows = db.query(PlanRow).order_by(PlanRow.created_at.desc()).all()
     return [_enrich_plan(db, r) for r in rows]
 
 
 @app.get("/api/plans/{plan_id}", response_model=Plan)
 def get_plan(plan_id: str, db: Session = Depends(get_session)):
+    """Return a single plan with enriched meal names, or 404 if not found."""
     plan = db.get(PlanRow, plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -173,6 +188,7 @@ def get_plan(plan_id: str, db: Session = Depends(get_session)):
 
 @app.put("/api/plans/{plan_id}", response_model=Plan)
 def update_plan(plan_id: str, body: PlanUpdate, db: Session = Depends(get_session)):
+    """Update a plan's name or week entries and return the updated plan."""
     plan = db.get(PlanRow, plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -189,6 +205,7 @@ def update_plan(plan_id: str, body: PlanUpdate, db: Session = Depends(get_sessio
 
 @app.delete("/api/plans/{plan_id}", status_code=204)
 def delete_plan(plan_id: str, db: Session = Depends(get_session)):
+    """Delete a plan by ID. Returns 204 on success, 404 if not found."""
     plan = db.get(PlanRow, plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")

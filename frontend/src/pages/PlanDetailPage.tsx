@@ -1,11 +1,17 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { usePlan, useDeletePlan } from '../api/plans'
+import { usePlan, useDeletePlan, useUpdatePlan } from '../api/plans'
+import { useMeals } from '../api/meals'
+import type { WeekEntry } from '../types'
 
 export default function PlanDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: plan, isLoading } = usePlan(id!)
+  const { data: meals } = useMeals()
   const deletePlan = useDeletePlan()
+  const updatePlan = useUpdatePlan(id!)
+  const [swapping, setSwapping] = useState<{ week: number; slot: 1 | 2 } | null>(null)
 
   if (isLoading) return <p className="text-gray-500">Loading...</p>
   if (!plan) return <p className="text-gray-500">Plan not found.</p>
@@ -14,6 +20,16 @@ export default function PlanDetailPage() {
     if (confirm(`Delete "${plan!.name}"?`)) {
       deletePlan.mutate(plan!.id, { onSuccess: () => navigate('/plans') })
     }
+  }
+
+  function handleSwap(weekNum: number, slot: 1 | 2, newMealId: string) {
+    const updatedWeeks = plan!.weeks.map((entry) => {
+      if (entry.week !== weekNum) return entry
+      return slot === 1
+        ? { ...entry, meal_1_id: newMealId }
+        : { ...entry, meal_2_id: newMealId }
+    })
+    updatePlan.mutate({ weeks: updatedWeeks as WeekEntry[] }, { onSuccess: () => setSwapping(null) })
   }
 
   return (
@@ -40,20 +56,53 @@ export default function PlanDetailPage() {
             className="bg-white border border-gray-200 rounded-lg px-4 py-3"
           >
             <p className="text-xs font-medium text-gray-400 mb-2">Week {entry.week}</p>
-            <div className="flex gap-4">
-              <Link
-                to={`/meals/${entry.meal_1_id}`}
-                className="font-medium text-gray-900 hover:text-blue-600"
-              >
-                {entry.meal_1_name}
-              </Link>
-              <span className="text-gray-300">·</span>
-              <Link
-                to={`/meals/${entry.meal_2_id}`}
-                className="font-medium text-gray-900 hover:text-blue-600"
-              >
-                {entry.meal_2_name}
-              </Link>
+            <div className="flex gap-4 items-center">
+              {([1, 2] as const).map((slot) => {
+                const mealId = slot === 1 ? entry.meal_1_id : entry.meal_2_id
+                const mealName = slot === 1 ? entry.meal_1_name : entry.meal_2_name
+                const isSwapping = swapping?.week === entry.week && swapping?.slot === slot
+
+                return (
+                  <div key={slot} className="flex items-center gap-2">
+                    {isSwapping ? (
+                      <>
+                        <select
+                          autoFocus
+                          defaultValue={mealId}
+                          onChange={(e) => handleSwap(entry.week, slot, e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm"
+                        >
+                          {meals?.map((m) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => setSwapping(null)}
+                          className="text-xs text-gray-400 hover:text-gray-600"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          to={`/meals/${mealId}`}
+                          className="font-medium text-gray-900 hover:text-blue-600"
+                        >
+                          {mealName}
+                        </Link>
+                        <button
+                          onClick={() => setSwapping({ week: entry.week, slot })}
+                          className="text-xs text-gray-400 hover:text-blue-500"
+                        >
+                          swap
+                        </button>
+                      </>
+                    )}
+                    {slot === 1 && <span className="text-gray-300">·</span>}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ))}

@@ -6,11 +6,12 @@ import type { AxiosError } from 'axios'
 export default function PlanGeneratePage() {
   const navigate = useNavigate()
   const generatePlan = useGeneratePlan()
-  const [form, setForm] = useState({ weeks: 4, name: '' })
+  const [form, setForm] = useState({ weeks: 4, name: '', tag: '' })
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    generatePlan.mutate(form, { onSuccess: (plan) => navigate(`/plans/${plan.id}`) })
+    const payload = { ...form, tag: form.tag || undefined }
+    generatePlan.mutate(payload, { onSuccess: (plan) => navigate(`/plans/${plan.id}`) })
   }
 
   const errorMsg = generatePlan.error
@@ -44,6 +45,19 @@ export default function PlanGeneratePage() {
             value={form.weeks}
             onChange={(e) => setForm({ ...form, weeks: parseInt(e.target.value) })}
             className="w-24 border border-gray-300 rounded px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor="plan-tag" className="block text-sm font-medium text-gray-700 mb-1">
+            Filter by tag <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            id="plan-tag"
+            type="text"
+            value={form.tag}
+            onChange={(e) => setForm({ ...form, tag: e.target.value })}
+            placeholder="e.g. chicken"
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
           />
         </div>
         {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}

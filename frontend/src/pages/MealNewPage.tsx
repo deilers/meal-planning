@@ -6,7 +6,7 @@ import MDEditor from '@uiw/react-md-editor'
 export default function MealNewPage() {
   const navigate = useNavigate()
   const createMeal = useCreateMeal()
-  const [form, setForm] = useState({ name: '', recipe: '', ingredients: '', tags: '', weight: 1 })
+  const [form, setForm] = useState({ name: '', recipe: '', ingredients: '', tags: '', weight: 1, enabled: true })
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -36,7 +36,7 @@ export function MealForm({
   isPending,
   submitLabel,
 }: {
-  form: { name: string; recipe: string; ingredients: string; tags: string; weight: number }
+  form: { name: string; recipe: string; ingredients: string; tags: string; weight: number; enabled: boolean }
   onChange: (f: typeof form) => void
   onSubmit: (e: React.FormEvent) => void
   onCancel: () => void
@@ -86,16 +86,31 @@ export function MealForm({
         />
       </Field>
       <Field label="Weight (1–5)" htmlFor="meal-weight">
-        <input
-          id="meal-weight"
-          type="number"
-          min={1}
-          max={5}
-          value={form.weight}
-          onChange={(e) => onChange({ ...form, weight: parseInt(e.target.value) })}
-          className="w-24 border border-gray-300 rounded px-3 py-2 text-sm"
-        />
+        <div className="flex items-center gap-3">
+          <input
+            id="meal-weight"
+            type="range"
+            min={1}
+            max={5}
+            value={form.weight}
+            onChange={(e) => onChange({ ...form, weight: parseInt(e.target.value) })}
+            className="w-32"
+          />
+          <span className="text-sm text-gray-600">{form.weight}</span>
+        </div>
       </Field>
+      <div className="flex items-center gap-2">
+        <input
+          id="meal-enabled"
+          type="checkbox"
+          checked={form.enabled}
+          onChange={(e) => onChange({ ...form, enabled: e.target.checked })}
+          className="rounded"
+        />
+        <label htmlFor="meal-enabled" className="text-sm font-medium text-gray-700">
+          Include in plan generation
+        </label>
+      </div>
       <div className="flex gap-3 pt-2">
         <button
           type="submit"

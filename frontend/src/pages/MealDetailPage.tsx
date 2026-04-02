@@ -12,14 +12,14 @@ export default function MealDetailPage() {
   const deleteMeal = useDeleteMeal()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<{
-    name: string; recipe: string; ingredients: string; tags: string; weight: number
+    name: string; recipe: string; ingredients: string; tags: string; weight: number; enabled: boolean
   } | null>(null)
 
   if (isLoading) return <p className="text-gray-500">Loading...</p>
   if (!meal) return <p className="text-gray-500">Meal not found.</p>
 
   function startEdit() {
-    setForm({ name: meal!.name, recipe: meal!.recipe, ingredients: meal!.ingredients, tags: meal!.tags, weight: meal!.weight })
+    setForm({ name: meal!.name, recipe: meal!.recipe, ingredients: meal!.ingredients, tags: meal!.tags, weight: meal!.weight, enabled: meal!.enabled })
     setEditing(true)
   }
 
@@ -73,6 +73,7 @@ export default function MealDetailPage() {
       <div className="flex gap-4 text-sm text-gray-500 mb-6">
         {meal.tags && <span>Tags: {meal.tags}</span>}
         <span>Weight: {meal.weight}</span>
+        {!meal.enabled && <span className="text-amber-600">Excluded from plans</span>}
       </div>
 
       {meal.ingredients && (

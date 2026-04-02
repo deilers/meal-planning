@@ -2,8 +2,8 @@ import { http, HttpResponse } from 'msw'
 import type { Meal, Plan } from '../types'
 
 export const mockMeals: Meal[] = [
-  { id: '1', name: 'Tacos', recipe: 'Cook the beef.', ingredients: 'Beef\nCheese', tags: 'mexican', weight: 1, created_at: '2026-01-01T00:00:00Z' },
-  { id: '2', name: 'Spaghetti', recipe: '', ingredients: '', tags: 'italian', weight: 1, created_at: '2026-01-01T00:00:00Z' },
+  { id: '1', name: 'Tacos', recipe: 'Cook the beef.', ingredients: 'Beef\nCheese', tags: 'mexican', weight: 1, enabled: true, created_at: '2026-01-01T00:00:00Z' },
+  { id: '2', name: 'Spaghetti', recipe: '', ingredients: '', tags: 'italian', weight: 1, enabled: false, created_at: '2026-01-01T00:00:00Z' },
 ]
 
 export const mockPlans: Plan[] = [

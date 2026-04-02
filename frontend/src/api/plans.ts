@@ -25,11 +25,25 @@ export function usePlan(id: string) {
 export function useGeneratePlan() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (params: { weeks: number; name: string }) => {
+    mutationFn: async (params: { weeks: number; name: string; tag?: string }) => {
       const { data } = await api.post<Plan>('/plans/generate', params)
       return data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['plans'] }),
+  })
+}
+
+export function useUpdatePlan(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (updates: { name?: string; weeks?: Plan['weeks'] }) => {
+      const { data } = await api.put<Plan>(`/plans/${id}`, updates)
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['plans'] })
+      qc.invalidateQueries({ queryKey: ['plan', id] })
+    },
   })
 }
 

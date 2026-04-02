@@ -1,6 +1,6 @@
 import os
 
-from sqlalchemy import Column, Integer, String, Text, create_engine
+from sqlalchemy import Boolean, Column, Integer, String, Text, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/meal_planning")
@@ -22,6 +22,7 @@ class MealRow(Base):
     ingredients = Column(Text, default="")
     tags = Column(String, default="")
     weight = Column(Integer, default=1)
+    enabled = Column(Boolean, default=True)
     created_at = Column(String, nullable=False)
 
 
@@ -35,6 +36,7 @@ class PlanRow(Base):
 
 
 def get_session():
+    """FastAPI dependency that yields a database session and closes it when done."""
     db = SessionLocal()
     try:
         yield db
@@ -43,4 +45,8 @@ def get_session():
 
 
 def init_db():
+    """Create all tables and run incremental column migrations."""
     Base.metadata.create_all(engine)
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE meals ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE"))
+        conn.commit()

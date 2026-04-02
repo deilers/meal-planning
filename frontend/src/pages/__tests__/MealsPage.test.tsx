@@ -18,6 +18,19 @@ describe('MealsPage', () => {
     expect(await screen.findByText('Add meal')).toBeInTheDocument()
   })
 
+  it('renders the tag filter input', () => {
+    renderWithProviders(<MealsPage />)
+    expect(screen.getByPlaceholderText(/Filter by tag/)).toBeInTheDocument()
+  })
+
+  it('renders enabled/disabled toggle for each meal', async () => {
+    renderWithProviders(<MealsPage />)
+    await waitFor(() => {
+      expect(screen.getByText('Enabled')).toBeInTheDocument()
+      expect(screen.getByText('Disabled')).toBeInTheDocument()
+    })
+  })
+
   it('prompts for confirmation before deleting', async () => {
     const user = userEvent.setup()
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)

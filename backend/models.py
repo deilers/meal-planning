@@ -8,6 +8,7 @@ class MealCreate(BaseModel):
     ingredients: str = ""
     tags: str = ""
     weight: int = Field(default=1, ge=1, le=5)
+    enabled: bool = True
 
 
 class MealUpdate(BaseModel):
@@ -16,6 +17,7 @@ class MealUpdate(BaseModel):
     ingredients: Optional[str] = None
     tags: Optional[str] = None
     weight: Optional[int] = Field(default=None, ge=1, le=5)
+    enabled: Optional[bool] = None
 
 
 class Meal(BaseModel):
@@ -25,6 +27,7 @@ class Meal(BaseModel):
     ingredients: str = ""
     tags: str = ""
     weight: int = 1
+    enabled: bool = True
     created_at: str
 
 
@@ -39,6 +42,7 @@ class WeekEntry(BaseModel):
 class PlanGenerateRequest(BaseModel):
     weeks: int = Field(default=4, ge=1, le=52)
     name: str = ""
+    tag: Optional[str] = None
 
 
 class PlanUpdate(BaseModel):

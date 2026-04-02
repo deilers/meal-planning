@@ -5,6 +5,7 @@ export interface Meal {
   ingredients: string
   tags: string
   weight: number
+  enabled: boolean
   created_at: string
 }
 
