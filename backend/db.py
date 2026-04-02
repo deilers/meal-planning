@@ -47,6 +47,7 @@ def get_session():
 def init_db():
     """Create all tables and run incremental column migrations."""
     Base.metadata.create_all(engine)
-    with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE meals ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE"))
-        conn.commit()
+    if engine.dialect.name == "postgresql":
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE meals ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE"))
+            conn.commit()
