@@ -105,6 +105,7 @@ Week count is user-specified at generation time (e.g. 4, 8, 12 weeks).
 - [ ] Tag support: add/filter by tags in meal library
 - [ ] Weight/frequency control per meal (UI slider or select)
 - [ ] Tag-based filtering during plan generation
+- [ ] Enable/disable meals — disabled meals are excluded from plan generation
 
 ### Phase 4 — Polish
 
