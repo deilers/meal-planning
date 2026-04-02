@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useMeal, useUpdateMeal, useDeleteMeal } from '../api/meals'
 import { MealForm } from './MealNewPage'
+import MDEditor from '@uiw/react-md-editor'
 
 export default function MealDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -77,14 +78,20 @@ export default function MealDetailPage() {
       {meal.ingredients && (
         <div className="mb-6">
           <h2 className="text-sm font-medium text-gray-700 mb-2">Ingredients</h2>
-          <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans">{meal.ingredients}</pre>
+          <ul className="list-disc list-inside space-y-1">
+            {meal.ingredients.split('\n').filter(Boolean).map((item, i) => (
+              <li key={i} className="text-sm text-gray-600">{item}</li>
+            ))}
+          </ul>
         </div>
       )}
 
       {meal.recipe && (
         <div>
           <h2 className="text-sm font-medium text-gray-700 mb-2">Recipe</h2>
-          <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans">{meal.recipe}</pre>
+          <div data-color-mode="light" className="prose prose-sm max-w-none">
+            <MDEditor.Markdown source={meal.recipe} />
+          </div>
         </div>
       )}
 

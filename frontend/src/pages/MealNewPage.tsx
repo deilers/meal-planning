@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCreateMeal } from '../api/meals'
+import MDEditor from '@uiw/react-md-editor'
 
 export default function MealNewPage() {
   const navigate = useNavigate()
@@ -65,13 +66,14 @@ export function MealForm({
         />
       </Field>
       <Field label="Recipe" htmlFor="meal-recipe">
-        <textarea
-          id="meal-recipe"
-          rows={6}
-          value={form.recipe}
-          onChange={(e) => onChange({ ...form, recipe: e.target.value })}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-        />
+        <div data-color-mode="light">
+          <MDEditor
+            id="meal-recipe"
+            value={form.recipe}
+            onChange={(val) => onChange({ ...form, recipe: val ?? '' })}
+            height={240}
+          />
+        </div>
       </Field>
       <Field label="Tags" htmlFor="meal-tags">
         <input
