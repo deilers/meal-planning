@@ -1,9 +1,20 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { Routes, Route } from 'react-router-dom'
 import { renderWithProviders } from '../../test/utils'
 import MealNewPage from '../MealNewPage'
+
+vi.mock('@uiw/react-md-editor', () => {
+  const Markdown = ({ source }: { source: string }) => <div>{source}</div>
+  const Editor = Object.assign(
+    ({ value, id, onChange }: { value?: string; id?: string; onChange?: (val: string) => void }) => (
+      <textarea id={id} value={value ?? ''} onChange={(e) => onChange?.(e.target.value)} />
+    ),
+    { Markdown }
+  )
+  return { default: Editor }
+})
 
 describe('MealNewPage', () => {
   it('renders the meal form', () => {

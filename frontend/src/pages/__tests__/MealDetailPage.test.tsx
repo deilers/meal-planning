@@ -5,6 +5,11 @@ import { Routes, Route } from 'react-router-dom'
 import { renderWithProviders } from '../../test/utils'
 import MealDetailPage from '../MealDetailPage'
 
+vi.mock('@uiw/react-md-editor', () => {
+  const Markdown = ({ source }: { source: string }) => <div>{source}</div>
+  return { default: Object.assign(() => null, { Markdown }) }
+})
+
 function renderMealDetail(id = '1') {
   return renderWithProviders(
     <Routes>
@@ -39,6 +44,23 @@ describe('MealDetailPage', () => {
 
     await user.click(screen.getByText('Edit'))
     expect(screen.getByText('Save changes')).toBeInTheDocument()
+  })
+
+  it('renders each ingredient as a list item', async () => {
+    renderMealDetail('1')
+    await waitFor(() => {
+      const items = screen.getAllByRole('listitem')
+      expect(items).toHaveLength(2)
+      expect(items[0]).toHaveTextContent('Beef')
+      expect(items[1]).toHaveTextContent('Cheese')
+    })
+  })
+
+  it('renders recipe via markdown component', async () => {
+    renderMealDetail('1')
+    await waitFor(() => {
+      expect(screen.getByText('Cook the beef.')).toBeInTheDocument()
+    })
   })
 
   it('prompts for confirmation before deleting', async () => {
