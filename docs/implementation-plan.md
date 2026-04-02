@@ -95,9 +95,9 @@ Week count is user-specified at generation time (e.g. 4, 8, 12 weeks).
 
 ### Phase 2 — Recipes & Rich Data
 
-- [ ] Markdown recipe editor in the meal form
-- [ ] Ingredients list editor (add/remove individual items)
-- [ ] Meal detail page with rendered recipe and ingredient list
+- [x] Markdown recipe editor in the meal form
+- [x] Ingredients list editor (add/remove individual items)
+- [x] Meal detail page with rendered recipe and ingredient list
 
 ### Phase 3 — Plan Management
 
