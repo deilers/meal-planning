@@ -47,13 +47,14 @@ Two tables. Plan weeks are stored as a JSON column — no join table needed at t
 ```mermaid
 erDiagram
     meals {
-        string id PK
-        string name
-        text   recipe
-        text   ingredients
-        string tags
-        int    weight
-        string created_at
+        string  id PK
+        string  name
+        text    recipe
+        text    ingredients
+        string  tags
+        int     weight
+        boolean enabled
+        string  created_at
     }
 
     plans {
@@ -70,7 +71,7 @@ erDiagram
 
 | Table | Notable columns |
 |---|---|
-| `meals` | `weight` 1–5 controls selection frequency; `tags` is a comma-separated string |
+| `meals` | `weight` 1–5 controls selection frequency; `tags` is a comma-separated string; `enabled` excludes meal from plan generation when false |
 | `plans` | `weeks` stores a JSON array of `{week, meal_1_id, meal_2_id}`; meal names are resolved at read time |
 
 ---
@@ -122,6 +123,7 @@ graph TD
         usePlans
         usePlan
         useGeneratePlan
+        useUpdatePlan
         useDeletePlan
     end
 
@@ -144,25 +146,27 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B["Build weighted pool<br/>Each meal ID repeated weight times"]
-    B --> C["week = 1"]
-    C --> D["available = pool items<br/>not in previous week"]
-    D --> E{≥ 2 unique<br/>available?}
-    E -- No --> F["Relax: use full<br/>remaining pool"]
-    F --> G{≥ 2 unique<br/>remaining?}
-    G -- No --> H([Raise ValueError])
-    G -- Yes --> I
-    E -- Yes --> I["Pick meal_1 at random<br/>from available"]
-    I --> J["Pick meal_2 at random<br/>(must differ from meal_1)"]
-    J --> K["Remove one occurrence of<br/>each from pool"]
-    K --> L["Append week entry<br/>{week, meal_1_id, meal_2_id}"]
-    L --> M{week ==<br/>num_weeks?}
-    M -- No --> N["week += 1<br/>previous = {meal_1, meal_2}"]
-    N --> D
-    M -- Yes --> O([Return plan])
+    A([Start]) --> B["Filter: enabled meals only<br/>(optionally filtered by tag)"]
+    B --> C["Build weighted pool<br/>Each meal ID repeated weight times"]
+    C --> D["week = 1"]
+    D --> E["available = pool items<br/>not in previous week"]
+    E --> F{≥ 2 unique<br/>available?}
+    F -- No --> G["Relax: use full<br/>remaining pool"]
+    G --> H{≥ 2 unique<br/>remaining?}
+    H -- No --> I([Raise ValueError])
+    H -- Yes --> J
+    F -- Yes --> J["Pick meal_1 at random<br/>from available"]
+    J --> K["Pick meal_2 at random<br/>(must differ from meal_1)"]
+    K --> L["Remove one occurrence of<br/>each from pool"]
+    L --> M["Append week entry<br/>{week, meal_1_id, meal_2_id}"]
+    M --> N{week ==<br/>num_weeks?}
+    N -- No --> O["week += 1<br/>previous = {meal_1, meal_2}"]
+    O --> D
+    N -- Yes --> P([Return plan])
 ```
 
 **Key properties the algorithm guarantees:**
+- Only enabled meals are considered; an optional tag filter narrows the pool further
 - No meal appears twice in the same week
 - No meal carries over from the previous week (back-to-back constraint)
 - Each meal is removed from the pool after selection — within a single run, a meal can only repeat if its `weight` is > 1

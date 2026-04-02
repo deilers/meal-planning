@@ -101,11 +101,11 @@ Week count is user-specified at generation time (e.g. 4, 8, 12 weeks).
 
 ### Phase 3 — Plan Management
 
-- [ ] Inline meal swapping on the plan view page
-- [ ] Tag support: add/filter by tags in meal library
-- [ ] Weight/frequency control per meal (UI slider or select)
-- [ ] Tag-based filtering during plan generation
-- [ ] Enable/disable meals — disabled meals are excluded from plan generation
+- [x] Inline meal swapping on the plan view page
+- [x] Tag support: add/filter by tags in meal library
+- [x] Weight/frequency control per meal (UI slider or select)
+- [x] Tag-based filtering during plan generation
+- [x] Enable/disable meals — disabled meals are excluded from plan generation
 
 ### Phase 4 — Polish
 
